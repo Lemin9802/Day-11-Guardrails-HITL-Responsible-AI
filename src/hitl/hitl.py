@@ -87,14 +87,6 @@ class ConfidenceRouter:
             requires_human=True,
         )
 
-        return RoutingDecision(
-            action="auto_send",
-            confidence=confidence,
-            reason="TODO: implement routing logic",
-            priority="low",
-            requires_human=False,
-        )  # TODO: Replace with implementation
-
 
 
 hitl_decision_points = [
