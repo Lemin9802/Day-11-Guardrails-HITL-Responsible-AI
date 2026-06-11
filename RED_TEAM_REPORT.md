@@ -1,6 +1,7 @@
 # Day 11 Red Team Report — Guardrails, HITL & Responsible AI
 
 Họ và tên: Thái Thị Yến Nhi
+
 Mã Học viên: 2A202600783 
 
 ## 1. System Under Test
