@@ -6,19 +6,6 @@ Lab 11 — Part 4: Human-in-the-Loop Design
 from dataclasses import dataclass
 
 
-# ============================================================
-# TODO 12: Implement ConfidenceRouter
-#
-# Route agent responses based on confidence scores:
-#   - HIGH (>= 0.9): Auto-send to user
-#   - MEDIUM (0.7 - 0.9): Queue for human review
-#   - LOW (< 0.7): Escalate to human immediately
-#
-# Special case: if the action is HIGH_RISK (e.g., money transfer,
-# account deletion), ALWAYS escalate regardless of confidence.
-#
-# Implement the route() method.
-# ============================================================
 
 HIGH_RISK_ACTIONS = [
     "transfer_money",
@@ -65,24 +52,40 @@ class ConfidenceRouter:
         Returns:
             RoutingDecision with routing action and metadata
         """
-        # TODO 12: Implement routing logic
-        #
-        # 1. Check if action_type is in HIGH_RISK_ACTIONS
-        #    -> If yes: always escalate (action="escalate", priority="high",
-        #       requires_human=True, reason="High-risk action: {action_type}")
-        #
-        # 2. Check confidence thresholds:
-        #    - confidence >= 0.9:
-        #      action="auto_send", priority="low",
-        #      requires_human=False, reason="High confidence"
-        #
-        #    - 0.7 <= confidence < 0.9:
-        #      action="queue_review", priority="normal",
-        #      requires_human=True, reason="Medium confidence — needs review"
-        #
-        #    - confidence < 0.7:
-        #      action="escalate", priority="high",
-        #      requires_human=True, reason="Low confidence — escalating"
+        if action_type in HIGH_RISK_ACTIONS:
+            return RoutingDecision(
+                action="escalate",
+                confidence=confidence,
+                reason=f"High-risk action: {action_type}",
+                priority="high",
+                requires_human=True,
+            )
+
+        if confidence >= self.HIGH_THRESHOLD:
+            return RoutingDecision(
+                action="auto_send",
+                confidence=confidence,
+                reason="High confidence - safe to auto-send",
+                priority="low",
+                requires_human=False,
+            )
+
+        if confidence >= self.MEDIUM_THRESHOLD:
+            return RoutingDecision(
+                action="queue_review",
+                confidence=confidence,
+                reason="Medium confidence - needs human review",
+                priority="normal",
+                requires_human=True,
+            )
+
+        return RoutingDecision(
+            action="escalate",
+            confidence=confidence,
+            reason="Low confidence - escalate to human",
+            priority="high",
+            requires_human=True,
+        )
 
         return RoutingDecision(
             action="auto_send",
@@ -93,43 +96,31 @@ class ConfidenceRouter:
         )  # TODO: Replace with implementation
 
 
-# ============================================================
-# TODO 13: Design 3 HITL decision points
-#
-# For each decision point, define:
-# - trigger: What condition activates this HITL check?
-# - hitl_model: Which model? (human-in-the-loop, human-on-the-loop,
-#   human-as-tiebreaker)
-# - context_needed: What info does the human reviewer need?
-# - example: A concrete scenario
-#
-# Think about real banking scenarios where human judgment is critical.
-# ============================================================
 
 hitl_decision_points = [
     {
         "id": 1,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "High-risk banking action approval",
+        "trigger": "User requests transfer_money, close_account, change_password, delete_data, or update_personal_info",
+        "hitl_model": "human-in-the-loop",
+        "context_needed": "User request, extracted intent, amount/account affected, confidence score, risk reason, and proposed action",
+        "example": "Customer asks to transfer 50,000,000 VND to a new beneficiary. Agent prepares the action but waits for human approval.",
     },
     {
         "id": 2,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Low-confidence or ambiguous request",
+        "trigger": "Confidence score is below 0.7 or user intent is unclear",
+        "hitl_model": "human-as-tiebreaker",
+        "context_needed": "Conversation history, candidate interpretations, retrieved evidence, confidence score, and suggested response",
+        "example": "User says 'move my money to the better option' without specifying savings, investment, or transfer.",
     },
     {
         "id": 3,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Sensitive data or policy exception",
+        "trigger": "Output contains PII, secrets, internal data, or may conflict with banking policy",
+        "hitl_model": "human-in-the-loop",
+        "context_needed": "Original output, redacted output, detected issues, relevant policy/source, and recommended safe response",
+        "example": "Agent response includes a customer phone number or internal database hostname; response is held for review.",
     },
 ]
 
